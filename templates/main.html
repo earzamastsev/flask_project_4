@@ -21,7 +21,7 @@
       {% for meal in meals[category] %}
       <div class="col-12 col-md-4">
         <div class="card mb-3">
-          <img alt="" class="card-img-top" filename=meal.picture)}} height="200" src={{url_for('static', width="300">
+          <img alt="" class="card-img-top" height="200" src="{{url_for('static', filename=meal.picture)}}" width="300">
           <div class="card-body">
             <h4 class="h5 card-title">{{ meal.title }} </h4>
             <p class="card-text">{{ meal.description|truncate(70, True) }}</p>

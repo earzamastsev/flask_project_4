@@ -19,7 +19,11 @@ def index():
 
 @app.route('/cart/')
 def cart():
-    return render_template('cart.html')
+    meals = []
+    for meal in session['cart_id']:
+        meal = db.session.query(MealModel).get(meal)
+        meals.append(meal)
+    return render_template('cart.html', meals=meals)
 
 
 @app.route('/addtocart/<int:meal>/')
@@ -29,9 +33,16 @@ def addtochart(meal):
     session['cart_price'] = session.get('cart_price', [])
     session['cart_id'].append(str(meal))
     session['cart_price'].append(price)
-    print(session)
-    return redirect('/')
+    return redirect('/cart/')
 
+
+@app.route('/delfromcart/<meal>/')
+def delfromcart(meal):
+    idx = session['cart_id'].index(meal)
+    session['cart_id'].pop(idx)
+    session['cart_price'].pop(idx)
+    flash('Блюдо удалено из корзины')
+    return redirect('/cart/')
 
 @app.route('/ordered/')
 def ordered():
