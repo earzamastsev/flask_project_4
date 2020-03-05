@@ -1,5 +1,5 @@
 from flask import session, request, render_template, abort, flash, redirect
-from models import MealModel, CategoryModel
+from models import MealModel, CategoryModel, UserModel
 from sqlalchemy.sql.expression import func
 from app import app, db
 from forms import RegisterForm
@@ -65,7 +65,14 @@ def login():
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        flash('Поздравляем, вы успешно прошли регистрацию! Добро пожаловать в личный кабинет пользователя.')
+        user = UserModel()
+        try:
+            form.populate_obj(user)
+            db.session.add(user)
+            db.session.commit()
+        except Exception as er:
+            return render_template('register.html', form=form)
+        flash('Поздравляем, вы успешно зарегистровались! Добро пожаловать в личный кабинет пользователя.')
         session['is_auth'] = True
         return redirect('/account/')
     return render_template('register.html', form=form)
