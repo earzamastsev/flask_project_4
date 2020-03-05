@@ -5,7 +5,7 @@ from wtforms.validators import Email, Length, Regexp
 
 class LoginForm(FlaskForm):
     email = StringField('Электропочта', validators=[Email(message='Не похоже на адрес электронной почты.')])
-    password = PasswordField('Пароль', validators=[Length(min=5, message='Пароль должен быть не менее 5 символов.')])
+    password = PasswordField('Пароль')
 
 
 class RegisterForm(FlaskForm):

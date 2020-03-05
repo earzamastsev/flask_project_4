@@ -23,7 +23,19 @@ def cart():
     form = OrderForm()
     if form.validate_on_submit():
         order = OrderModel()
-        order.users = db.session.query(UserModel).get(session['user_id'])
+        user = session['user_id']
+        if not user:
+            user = UserModel(name=form.name.data, \
+                             email=form.email.data, \
+                             address=form.address.data, \
+                             phone=form.phone.data)
+            db.session.add(user)
+            db.session.commit()
+
+        else:
+            user = db.session.query(UserModel).get(session['user_id'])
+
+        order.users = user
         order.summa = sum(list(map(int, session['cart_price'])))
         meals = list(map(int, session['cart_id']))
         for meal in meals:
@@ -34,7 +46,7 @@ def cart():
         session['cart_id'] = []
         session['cart_price'] = []
         return redirect('/ordered/')
-    print(session)
+
     if session['user_id']:
         user = db.session.query(UserModel).get(session['user_id'])
         form.name.data = user.name
@@ -80,16 +92,31 @@ def account():
     return abort(404, 'Вы не авторизированы для доступа к этой странице. Необходимо пройти регистрацию')
 
 
-@app.route('/login/')
-def login():
-    session['is_auth'] = True
-    return render_template('auth.html')
-
-
 @app.route('/register/', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
+
+        user = UserModel.query.filter_by(email=form.email.data).first()
+        # Если такой пользователь существует
+        if user and user.role in ['authorized_user', 'admin']:
+            # Не можем зарегистрировать, так как пользователь уже существует
+            error_msg = "Пользователь с указанным e-mail уже существует"
+            return render_template("register.html", error_msg=error_msg, form=form)
+
+        elif user and user.role == 'guest':
+            try:
+                form.populate_obj(user)
+                user.role = 'authorized_user'
+                db.session.add(user)
+                db.session.commit()
+            except Exception as er:
+                return render_template('register.html', form=form)
+            flash(
+                'С возвращением! Теперь вы имеете статус зарегистрированного пользователя. Ваша история заказов доступа в личном кабинете.')
+            session['user_id'] = user.id
+            return redirect('/account/')
+
         user = UserModel()
         try:
             form.populate_obj(user)
@@ -103,13 +130,29 @@ def register():
         return redirect('/account/')
     return render_template('register.html', form=form)
 
-
 @app.route('/logout/')
 def logout():
     session['is_auth'] = False
     session['user_id'] = None
+    session['cart_id'] = []
+    session['cart_price'] = []
+
     return render_template('logout.html')
 
+
+@app.route('/login/', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    error_msg = ""
+    if form.validate_on_submit():
+        user = db.session.query(UserModel).filter(UserModel.email == form.email.data).first()
+        if user and form.password.data == user.password:
+            flash('И снова здравствуйте! Добро пожаловать в личный кабинет заказа блюд.')
+            print(user, user.password)
+            session['user_id'] = user.id
+            return redirect('/account/')
+        error_msg = "Неверный email или пароль."
+    return render_template('auth.html', form=form, error_msg=error_msg)
 
 @app.errorhandler(404)
 def no_auth(error):
