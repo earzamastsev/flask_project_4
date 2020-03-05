@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
 
 db = SQLAlchemy()
 
@@ -33,17 +34,20 @@ class UserModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(128), nullable=False)
     password = db.Column(db.String(128), nullable=True)
+    name = role = db.Column(db.String(32), nullable=False, default='Аноним')
     address = db.Column(db.String(128), nullable=False)
     phone = db.Column(db.String(128), nullable=False)
+    role = db.Column(db.String(32), nullable=False, default='guest')
     orders = db.relationship('OrderModel', back_populates='users')
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now)
 
 
 class OrderModel(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.DateTime, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.datetime.now)
     summa = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(128), nullable=False)
+    status = db.Column(db.String(128), default='Выполняется')
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     users = db.relationship('UserModel', back_populates='orders')
     meals = db.relationship('MealModel', secondary=meals_orders_association, back_populates='orders')

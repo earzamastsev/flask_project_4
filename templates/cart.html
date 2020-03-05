@@ -3,7 +3,18 @@
 {% block content %}
 
 
-<main class="container">
+<main class="container" xmlns="http://www.w3.org/1999/html">
+    {% if form.errors %}
+    {% for field_name, field_errors in form.errors|dictsort if field_errors %}
+    <div class="row pt-2">
+        <div class="col-6 offset-3">
+            {% for error in field_errors %}
+            <div class="alert alert-warning" role="alert">{{ form[field_name].label }}: {{ error }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
 
     {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -17,31 +28,33 @@
     <div class="row mt-5">
         <div class="col-4">
             <h4 class="">Ваши данные</h4>
-            <div class=" md-4 order-md-1">
-                <div class="mt-3 mb-3">
-                    <label for="name">Ваше имя</label>
-                    <input class="font-weight-bold form-control" id="name" type="text">
+            <form action="{{url_for('cart') }}" method="POST">
+                {{ form.hidden_tag() }}
+                <div class=" md-4 order-md-1">
+                    <div class="mt-3 mb-3">
+                        {{ form.name.label }}
+                        {{ form.name(class="font-weight-bold form-control") }}
+                    </div>
                 </div>
-            </div>
-            <div class=" md-4 order-md-1">
-                <div class="mt-3 mb-3">
-                    <label for="name">Адрес</label>
-                    <input class="font-weight-bold form-control" id="name" type="text">
+                <div class=" md-4 order-md-1">
+                    <div class="mt-3 mb-3">
+                        {{ form.email.label }}
+                        {{ form.email(class="font-weight-bold form-control") }}
+                    </div>
                 </div>
-            </div>
-            <div class="md-4 form-label-group">
-                <label for="name">Электропочта</label>
-                <input autofocus class="form-control" id="inputEmail" required type="email">
-                <label for="inputEmail"></label>
-            </div>
-            <div class=" md-4 order-md-1">
-                <div class="mt-3 mb-3">
-                    <label for="name">Телефон</label>
-                    <input class="font-weight-bold form-control" id="name" type="text">
+                <div class="md-4 form-label-group">
+                    {{ form.address.label }}
+                    {{ form.address(class="font-weight-bold form-control") }}
                 </div>
-            </div>
-            <button class=" mt-3 mb-5 btn btn-danger" type="submit">Оформить заказ</button>
+                <div class=" md-4 order-md-1">
+                    <div class="mt-3 mb-3">
+                        {{ form.phone.label }}
+                        {{ form.phone(class="font-weight-bold form-control") }}
+                    </div>
+                </div>
+                <button class=" mt-3 mb-5 btn btn-danger" type="submit">Оформить заказ</button>
         </div>
+        </form>
         <div class="col-1"></div>
 
         <div class="col-7">
