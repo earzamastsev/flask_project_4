@@ -2,6 +2,7 @@ from flask import session, request, render_template, abort, flash, redirect
 from models import MealModel, CategoryModel
 from sqlalchemy.sql.expression import func
 from app import app, db
+from forms import RegisterForm
 
 
 @app.route('/')
@@ -60,12 +61,17 @@ def login():
     return render_template('auth.html')
 
 
-@app.route('/register/')
+@app.route('/register/', methods=['GET', 'POST'])
 def register():
-    return render_template('register.html')
+    form = RegisterForm()
+    if form.validate_on_submit():
+        flash('Поздравляем, вы успешно прошли регистрацию! Добро пожаловать в личный кабинет пользователя.')
+        session['is_auth'] = True
+        return redirect('/account/')
+    return render_template('register.html', form=form)
 
 
 @app.route('/logout/')
 def logout():
     session['is_auth'] = False
-    return "This is LOGOUT page!"
+    return render_template('logout.html')

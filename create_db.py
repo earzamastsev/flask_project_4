@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
 
+
 app = Flask(__name__)
 app.config.from_object('config')
 db = SQLAlchemy(app)
@@ -28,7 +29,7 @@ class CategoryModel(db.Model):
     meals = db.relationship('MealModel', back_populates='category')
 
 
-db.create_all()
+# db.create_all()
 
 data = [{'id': '1',
          'title': 'Ролл "Томато"',
