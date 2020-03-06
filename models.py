@@ -32,14 +32,29 @@ class CategoryModel(db.Model):
 class UserModel(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(128), nullable=False)
-    password = db.Column(db.String(128), nullable=True)
+    email = db.Column(db.String(128), nullable=False, unique=True)
+    password_hash = db.Column(db.String(128), nullable=True)
     name = role = db.Column(db.String(32), nullable=False, default='Аноним')
     address = db.Column(db.String(128), nullable=False)
     phone = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(32), nullable=False, default='guest')
     orders = db.relationship('OrderModel', back_populates='users')
     created_at = db.Column(db.DateTime, default=datetime.datetime.now)
+
+    @property
+    def password(self):
+        # Запретим прямое обращение к паролю
+        raise AttributeError("Вам не нужно знать пароль!")
+
+    @password.setter
+    def password(self, password):
+        # Устанавливаем пароль через этот метод
+        self.password_hash = generate_password_hash(password)
+
+    def password_valid(self, password):
+        # Проверяем пароль через этот метод
+        # Функция check_password_hash превращает password в хеш и сравнивает с хранимым
+        return check_password_hash(self.password_hash, password)
 
 
 class OrderModel(db.Model):

@@ -1,8 +1,17 @@
-from flask import session, request, render_template, abort, flash, redirect
+from flask import session, render_template, abort, flash, redirect
 from models import MealModel, CategoryModel, UserModel, OrderModel
 from sqlalchemy.sql.expression import func
 from app import app, db
 from forms import RegisterForm, OrderForm, LoginForm
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
+
+admin = Admin(app)
+
+admin.add_view(ModelView(MealModel, db.session))
+admin.add_view(ModelView(CategoryModel, db.session))
+admin.add_view(ModelView(UserModel, db.session))
+admin.add_view((ModelView(OrderModel, db.session)))
 
 
 @app.route('/')
@@ -20,44 +29,54 @@ def index():
 
 @app.route('/cart/', methods=['GET', 'POST'])
 def cart():
+    # Проверяем наличие товаров в корзине
+    if not session.get('cart_id'):
+        error = "Ваша корзина пуста. Для оформления заказа необхоимо выбрать блюда."
+        return render_template('error.html', error=error)
+
     form = OrderForm()
     if form.validate_on_submit():
         order = OrderModel()
-        user = session['user_id']
+        user = session.get('user_id')
         if not user:
             user = UserModel(name=form.name.data, \
                              email=form.email.data, \
                              address=form.address.data, \
-                             phone=form.phone.data)
+                             phone=form.phone.data,
+                             role='guest')
             db.session.add(user)
             db.session.commit()
 
         else:
-            user = db.session.query(UserModel).get(session['user_id'])
+            user = db.session.query(UserModel).get(session.get('user_id'))
 
-        order.users = user
-        order.summa = sum(list(map(int, session['cart_price'])))
-        meals = list(map(int, session['cart_id']))
-        for meal in meals:
-            meal = db.session.query(MealModel).get(meal)
-            order.meals.append(meal)
-        db.session.add(order)
-        db.session.commit()
-        session['cart_id'] = []
-        session['cart_price'] = []
-        return redirect('/ordered/')
+        if session.get('cart_id'):
+            order.users = user
+            order.summa = sum(list(map(int, session.get('cart_price'))))
+            meals = list(map(int, session.get('cart_id')))
+            for meal in meals:
+                meal = db.session.query(MealModel).get(meal)
+                order.meals.append(meal)
+            db.session.add(order)
+            db.session.commit()
+            session['cart_id'] = []
+            session['cart_price'] = []
+            return redirect('/ordered/')
+        else:
+            flash('У вас нет блюд в корзине. Дбавьте блюдо и повторите оформление заказа.')
+            return redirect('/')
 
-    if session['user_id']:
+    # Проверяем прошел ли пользователь аутентификацию
+    if session.get('user_id'):
         user = db.session.query(UserModel).get(session['user_id'])
         form.name.data = user.name
         form.email.data = user.email
         form.address.data = user.address
         form.phone.data = user.phone
     meals = []
-    for meal in session['cart_id']:
+    for meal in session.get('cart_id'):
         meal = db.session.query(MealModel).get(meal)
         meals.append(meal)
-
     return render_template('cart.html', meals=meals, form=form)
 
 
@@ -79,6 +98,7 @@ def delfromcart(meal):
     flash('Блюдо удалено из корзины')
     return redirect('/cart/')
 
+
 @app.route('/ordered/')
 def ordered():
     return render_template('ordered.html')
@@ -86,17 +106,17 @@ def ordered():
 
 @app.route('/account/')
 def account():
-    if session['user_id']:
+    if session.get('user_id'):
         user = db.session.query(UserModel).get(session['user_id'])
         return render_template('account.html', orders=user.orders)
-    return abort(404, 'Вы не авторизированы для доступа к этой странице. Необходимо пройти регистрацию')
+    return abort(404,
+                 'Вы не авторизированы для доступа к этой странице. Необходимо пройти регистрацию и войти в личный кабинет.')
 
 
 @app.route('/register/', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-
         user = UserModel.query.filter_by(email=form.email.data).first()
         # Если такой пользователь существует
         if user and user.role in ['authorized_user', 'admin']:
@@ -110,7 +130,7 @@ def register():
                 user.role = 'authorized_user'
                 db.session.add(user)
                 db.session.commit()
-            except Exception as er:
+            except BaseException as er:
                 return render_template('register.html', form=form)
             flash(
                 'С возвращением! Теперь вы имеете статус зарегистрированного пользователя. Ваша история заказов доступа в личном кабинете.')
@@ -123,37 +143,40 @@ def register():
             user.role = 'authorized_user'
             db.session.add(user)
             db.session.commit()
-        except Exception as er:
+        except BaseException as er:
             return render_template('register.html', form=form)
         flash('Поздравляем, вы успешно зарегистровались! Добро пожаловать в личный кабинет пользователя.')
         session['user_id'] = user.id
         return redirect('/account/')
     return render_template('register.html', form=form)
 
+
 @app.route('/logout/')
 def logout():
-    session['is_auth'] = False
     session['user_id'] = None
     session['cart_id'] = []
     session['cart_price'] = []
-
     return render_template('logout.html')
 
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
-    error_msg = ""
     if form.validate_on_submit():
         user = db.session.query(UserModel).filter(UserModel.email == form.email.data).first()
-        if user and form.password.data == user.password:
+        if user and user.password_valid(form.password.data):
             flash('И снова здравствуйте! Добро пожаловать в личный кабинет заказа блюд.')
-            print(user, user.password)
             session['user_id'] = user.id
             return redirect('/account/')
-        error_msg = "Неверный email или пароль."
-    return render_template('auth.html', form=form, error_msg=error_msg)
+        form.email.errors.append("Неверный email или пароль.")
+    return render_template('auth.html', form=form)
+
 
 @app.errorhandler(404)
 def no_auth(error):
-    return (error)
+    return (render_template('error.html', error=error))
+
+
+@app.route('/admin/')
+def admin():
+    return "This is admin view"
