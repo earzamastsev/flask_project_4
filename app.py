@@ -23,8 +23,6 @@ def format_datetime(value, format="%d %m"):
               '10': 'Октября',
               '11': 'Ноября',
               '12': 'Декабря'}
-
-    """Format a date time to (Default): d Mon YYYY HH:MM P"""
     if value is None:
         return ""
     date, month = value.strftime(format).split()
@@ -32,7 +30,7 @@ def format_datetime(value, format="%d %m"):
     return value
 
 
-# Register the template filter with the Jinja Environment
+# регистрируем новый фильтр для использовании в Jinja
 app.jinja_env.filters['formatdatetime'] = format_datetime
 
 if __name__ == '__main__':
