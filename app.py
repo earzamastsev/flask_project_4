@@ -2,9 +2,15 @@ from flask import Flask
 from models import db
 from flask_migrate import Migrate
 
-app = Flask(__name__)
-app.config.from_object('config')
-db.init_app(app)
+
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object('config')
+    db.init_app(app)
+    return app
+
+
+app = create_app()
 migrate = Migrate(app, db)
 
 from views import *
