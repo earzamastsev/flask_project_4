@@ -1,4 +1,4 @@
-DEBUG = True
+DEBUG = False
 SECRET_KEY = 'my_secret_key'
 # SQLALCHEMY_DATABASE_URI = 'sqlite:///test.db'
 
