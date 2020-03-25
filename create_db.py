@@ -6,7 +6,6 @@ app = Flask(__name__)
 app.config.from_object('config')
 db = SQLAlchemy(app)
 
-
 # meals_categories_association = db.Table('meals_categories', \
 #                                         db.Column('meal_id', db.Integer, db.ForeignKey('meals.id')), \
 #                                         db.Column('category_id', db.Integer, db.ForeignKey('categories.id'))
