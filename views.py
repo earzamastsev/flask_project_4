@@ -97,7 +97,7 @@ def addtochart(meal):
 
 
 # удаляем товар из корзины
-@app.route('/delfromcart/<int:meal>/')
+@app.route('/delfromcart/<meal>/')
 def delfromcart(meal):
     # проверка есть ли блюдо в списке выбранных
     if meal in session['cart_id']:
